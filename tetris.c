@@ -4,90 +4,94 @@
 
 // -----------------------------------------------------------
 // Estrutura que representa uma peça do Tetris
-// nome -> caractere que identifica a peça ('I', 'O', 'T', 'L')
-// id   -> número único gerado automaticamente
 // -----------------------------------------------------------
 typedef struct {
-    char nome;
-    int id;
+    char nome;   // tipo da peça ('I', 'O', 'T', 'L')
+    int id;      // identificador único
 } Peca;
 
-// Lista fixa de possíveis nomes das peças
+// Tipos possíveis de peças
 char tipos[4] = {'I', 'O', 'T', 'L'};
 
 // -----------------------------------------------------------
-// Função responsável por gerar automaticamente uma nova peça
-// Retorna uma struct Peca com nome aleatório e id incremental.
+// Função: gerarPeca
+// Gera automaticamente uma peça com tipo aleatório e id único
 // -----------------------------------------------------------
 Peca gerarPeca(int id) {
-    Peca nova;
-    int indice = rand() % 4;  // sorteia um tipo de peça
-    nova.nome = tipos[indice];
-    nova.id = id;
-    return nova;
+    Peca p;
+    p.nome = tipos[rand() % 4];
+    p.id = id;
+    return p;
 }
 
 // -----------------------------------------------------------
-// Função para exibir todo o estado da fila
-// Trabalha com fila circular, exibindo do front até rear.
+// Função: exibirFila
+// Exibe os elementos da fila circular do front até o rear
 // -----------------------------------------------------------
 void exibirFila(Peca fila[], int frente, int tras, int tamanho) {
-    printf("\nFila de peças:\n");
+    printf("Fila de peças: ");
 
     if (frente == -1) {
-        printf("(fila vazia)\n");
+        printf("(vazia)");
         return;
     }
 
     int i = frente;
     while (1) {
         printf("[%c %d] ", fila[i].nome, fila[i].id);
-        if (i == tras) break;  // chegou ao final da fila
+        if (i == tras) break;
         i = (i + 1) % tamanho;
     }
-    printf("\n");
 }
 
 // -----------------------------------------------------------
-// Inserir nova peça no final da fila (enqueue)
-// Usa lógica de fila circular.
+// Função: exibirPilha
+// Exibe os elementos da pilha do topo até a base
+// -----------------------------------------------------------
+void exibirPilha(Peca pilha[], int topo) {
+    printf("Pilha de reserva (Topo -> Base): ");
+
+    if (topo == -1) {
+        printf("(vazia)");
+        return;
+    }
+
+    for (int i = topo; i >= 0; i--) {
+        printf("[%c %d] ", pilha[i].nome, pilha[i].id);
+    }
+}
+
+// -----------------------------------------------------------
+// Enqueue - inserir elemento na fila circular
 // -----------------------------------------------------------
 int enqueue(Peca fila[], int *frente, int *tras, int tamanho, Peca p) {
-
-    // Caso especial: fila vazia
-    if (*frente == -1) {
-        *frente = 0;
-        *tras = 0;
+    if (*frente == -1) { // fila vazia
+        *frente = *tras = 0;
         fila[*tras] = p;
         return 1;
     }
 
-    // Verifica se a fila está cheia
-    int proxima = (*tras + 1) % tamanho;
-    if (proxima == *frente) {
-        return 0; // não há espaço
+    int proximaPos = (*tras + 1) % tamanho;
+
+    if (proximaPos == *frente) {
+        return 0; // fila cheia
     }
 
-    *tras = proxima;
+    *tras = proximaPos;
     fila[*tras] = p;
     return 1;
 }
 
 // -----------------------------------------------------------
-// Remover peça da frente da fila (dequeue)
+// Dequeue - remover elemento da fila circular
 // -----------------------------------------------------------
 int dequeue(Peca fila[], int *frente, int *tras, int tamanho, Peca *removida) {
-
-    if (*frente == -1) {
-        return 0; // fila vazia
-    }
+    if (*frente == -1) return 0; // fila vazia
 
     *removida = fila[*frente];
 
-    // Se havia apenas um elemento
     if (*frente == *tras) {
-        *frente = -1;
-        *tras = -1;
+        *frente = *tras = -1;
     } else {
         *frente = (*frente + 1) % tamanho;
     }
@@ -96,56 +100,106 @@ int dequeue(Peca fila[], int *frente, int *tras, int tamanho, Peca *removida) {
 }
 
 // -----------------------------------------------------------
+// Push - inserir na pilha
+// -----------------------------------------------------------
+int push(Peca pilha[], int *topo, int capacidade, Peca p) {
+    if (*topo == capacidade - 1) return 0; // pilha cheia
+
+    *topo = *topo + 1;
+    pilha[*topo] = p;
+    return 1;
+}
+
+// -----------------------------------------------------------
+// Pop - remover peça do topo da pilha
+// -----------------------------------------------------------
+int pop(Peca pilha[], int *topo, Peca *removida) {
+    if (*topo == -1) return 0; // pilha vazia
+
+    *removida = pilha[*topo];
+    *topo = *topo - 1;
+    return 1;
+}
+
+// -----------------------------------------------------------
 // Função principal
 // -----------------------------------------------------------
 int main() {
-    srand(time(NULL));  // inicializa números aleatórios
+    srand(time(NULL));
 
-    const int TAM = 5;      // tamanho fixo da fila
-    Peca fila[TAM];         // array de peças
+    const int TAM_FILA = 5;
+    const int TAM_PILHA = 3;
+
+    // Estruturas de dados
+    Peca fila[TAM_FILA];
+    Peca pilha[TAM_PILHA];
+
     int frente = -1, tras = -1;
-    int ultimoID = 0;       // contador para ids únicos
+    int topo = -1;
+    int ultimoID = 0;
 
-    // Inicializa fila com 5 peças
-    for (int i = 0; i < TAM; i++) {
-        enqueue(fila, &frente, &tras, TAM, gerarPeca(ultimoID++));
+    // Inicializa a fila com 5 peças
+    for (int i = 0; i < TAM_FILA; i++) {
+        enqueue(fila, &frente, &tras, TAM_FILA, gerarPeca(ultimoID++));
     }
 
     int opcao;
 
     do {
         printf("\n============================\n");
-        exibirFila(fila, frente, tras, TAM);
+        printf("ESTADO ATUAL\n");
+
+        exibirFila(fila, frente, tras, TAM_FILA);
+        printf("\n");
+        exibirPilha(pilha, topo);
+        printf("\n============================\n");
 
         printf("\nOpções:\n");
-        printf("1 - Jogar peça (dequeue)\n");
-        printf("2 - Inserir nova peça (enqueue)\n");
+        printf("1 - Jogar peça\n");
+        printf("2 - Reservar peça\n");
+        printf("3 - Usar peça reservada\n");
         printf("0 - Sair\n");
-        printf("Sua escolha: ");
+        printf("Escolha: ");
         scanf("%d", &opcao);
 
         if (opcao == 1) {
-            Peca removida;
+            Peca jogada;
 
-            if (dequeue(fila, &frente, &tras, TAM, &removida)) {
-                printf("\nPeça jogada: [%c %d]\n", removida.nome, removida.id);
-            } else {
-                printf("\nA fila está vazia! Não há peça para jogar.\n");
+            if (dequeue(fila, &frente, &tras, TAM_FILA, &jogada)) {
+                printf("\nPeça jogada: [%c %d]\n", jogada.nome, jogada.id);
             }
+
+            // Sempre inserir nova peça após a ação
+            enqueue(fila, &frente, &tras, TAM_FILA, gerarPeca(ultimoID++));
 
         } else if (opcao == 2) {
-            Peca nova = gerarPeca(ultimoID++);
+            Peca reservada;
 
-            if (enqueue(fila, &frente, &tras, TAM, nova)) {
-                printf("\nPeça inserida: [%c %d]\n", nova.nome, nova.id);
+            if (!dequeue(fila, &frente, &tras, TAM_FILA, &reservada)) {
+                printf("\nFila vazia! Não é possível reservar.\n");
+            } else if (!push(pilha, &topo, TAM_PILHA, reservada)) {
+                printf("\nPilha cheia! Não é possível reservar.\n");
             } else {
-                printf("\nA fila está cheia! Não é possível inserir nova peça.\n");
+                printf("\nPeça reservada: [%c %d]\n", reservada.nome, reservada.id);
             }
+
+            enqueue(fila, &frente, &tras, TAM_FILA, gerarPeca(ultimoID++));
+
+        } else if (opcao == 3) {
+            Peca usada;
+
+            if (pop(pilha, &topo, &usada)) {
+                printf("\nPeça usada: [%c %d]\n", usada.nome, usada.id);
+            } else {
+                printf("\nPilha vazia! Nenhuma peça para usar.\n");
+            }
+
+            enqueue(fila, &frente, &tras, TAM_FILA, gerarPeca(ultimoID++));
+
         }
 
     } while (opcao != 0);
 
     printf("\nEncerrando o programa...\n");
-
     return 0;
 }
